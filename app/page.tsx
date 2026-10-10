@@ -1,20 +1,57 @@
-import Link from "next/link"
+import { auth } from "@clerk/nextjs/server"
+import { PlusIcon } from "lucide-react"
+import { randomInt, randomUUID } from "node:crypto"
+import { connection } from "next/server"
 
-import { buttonVariants } from "@/components/ui/button"
+import { ChatAvatar, type ChatAvatarStyle } from "@/components/chat-avatar"
+import { Button } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
 
-export default function Page() {
+const avatarStyles = [
+  "combined",
+  "gaze",
+  "marbles",
+  "clay",
+] as const satisfies readonly ChatAvatarStyle[]
+
+export default async function Page() {
+  await auth.protect()
+  await connection()
+
+  const avatarSeed = randomUUID()
+  const avatarStyle = avatarStyles[randomInt(avatarStyles.length)]
+
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col items-start gap-4 px-6 py-12">
-      <h1 className="text-3xl font-semibold">Welcome to Dice</h1>
-      <p className="max-w-md text-muted-foreground">
-        Sign in or create an account to get started.
-      </p>
-      <Link href="/dashboard" prefetch={false} className={buttonVariants()}>
-        Open dashboard
-      </Link>
-      <p className="font-mono text-xs text-muted-foreground">
-        Press <kbd>d</kbd> to toggle dark mode.
-      </p>
+    <main className="mx-auto flex min-h-[calc(100svh-4.0625rem)] w-full max-w-5xl items-center justify-center px-6 pb-16">
+      <Empty className="max-w-md">
+        <EmptyHeader>
+          <ChatAvatar
+            seed={avatarSeed}
+            style={avatarStyle}
+            animated
+            className="mb-2"
+          />
+          <EmptyTitle role="heading" aria-level={1}>
+            Meet your first bot
+          </EmptyTitle>
+          <EmptyDescription>
+            Every bot gets its own personality, memory, and face. Spin one up
+            and start the conversation.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button type="button" variant="secondary">
+            <PlusIcon data-icon="inline-start" />
+            Create a new bot
+          </Button>
+        </EmptyContent>
+      </Empty>
     </main>
   )
 }
