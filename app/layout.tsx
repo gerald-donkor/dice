@@ -1,6 +1,10 @@
+import { ClerkProvider } from "@clerk/nextjs"
+import { shadcn } from "@clerk/ui/themes"
+import Link from "next/link"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import "./globals.css"
+import { AuthControls } from "@/components/auth-controls"
 import { ThemeProvider } from "@/components/theme-provider"
 import { DirectionProvider } from "@/components/ui/direction"
 import { Toaster } from "@/components/ui/toast"
@@ -32,13 +36,25 @@ export default function RootLayout({
       )}
     >
       <body>
-        <ThemeProvider>
-          <DirectionProvider direction="ltr">
-            <TooltipProvider>
-              <Toaster>{children}</Toaster>
-            </TooltipProvider>
-          </DirectionProvider>
-        </ThemeProvider>
+        <ClerkProvider appearance={{ theme: shadcn }} afterSignOutUrl="/">
+          <ThemeProvider>
+            <DirectionProvider direction="ltr">
+              <TooltipProvider>
+                <Toaster>
+                  <header className="border-b">
+                    <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-6 py-4">
+                      <Link href="/" className="font-semibold">
+                        Dice
+                      </Link>
+                      <AuthControls />
+                    </div>
+                  </header>
+                  {children}
+                </Toaster>
+              </TooltipProvider>
+            </DirectionProvider>
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   )
