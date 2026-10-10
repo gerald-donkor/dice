@@ -1,6 +1,6 @@
 # Dice
 
-Next.js App Router app with Clerk authentication and shadcn/ui.
+Next.js App Router app with Clerk authentication, shadcn/ui, and Drizzle ORM with Neon Postgres.
 
 ## Development
 
@@ -33,6 +33,33 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+## Database
+
+Neon connection strings are stored in `.env.local`: `DATABASE_URL` is the pooled
+URL for application queries, and `DATABASE_URL_UNPOOLED` is the direct URL for
+Drizzle Kit. Both are listed in `.env.example`. Drizzle Kit loads the same env files
+as Next.js using `@next/env`.
+
+Import `db` from `@/db` in Server Components, Route Handlers, or Server Actions.
+The module is server-only and uses a Postgres pool reused during development hot
+reloads. It requires the Node.js runtime.
+
+Define application tables in `db/schema.ts`, then apply schema changes with:
+
+```bash
+npm run db:push
+```
+
+The `todos` table stores a title, completion status, Clerk user ID, and timestamps.
+Its shared insert validator trims titles and requires 1–500 characters. Supply the
+owner from the authenticated session when inserting; ownership is not accepted by
+the input validator. `updatedAt` updates automatically for Drizzle updates.
+This development project uses a clean slate for schema changes and does not use migration files or backfills.
+Use `npm run db:studio` to browse the database locally.
+
+When configuring another deployment, set both database URLs on Railway's `dice`
+service in the `production` environment as well.
 
 ## Production
 

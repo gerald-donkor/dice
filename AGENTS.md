@@ -25,6 +25,7 @@ This is a development project. There is no backwards compatibility and the data 
 
 - Apply schema changes only with `npm run db:push` (`drizzle-kit push`).
 - Never use migrations: do not run `drizzle-kit generate` or `drizzle-kit migrate`, and do not create migration files or a `drizzle/` folder.
+- Do not add migration scripts to `package.json` or keep migration artifacts (SQL migration files, snapshots, or journals). Use `db:push` for every schema change.
 
 ## Deployment
 
