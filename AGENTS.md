@@ -38,37 +38,59 @@ The app is deployed on Railway (project and service `dice`, environment `product
 
 Reference implementation: `db/schema.ts` (`botInsertSchema`), `actions/bot.ts` (`createBot`), `components/bot-dialog.tsx`.
 
+Before implementation
+
+- Use the shadcn skill for form UI, the Neon/Postgres skill for database access, and the Clerk/Next.js skill for authenticated server actions. Read the relevant local Next.js guides before writing code.
+- Inspect the existing table, schema, action, and UI components first. Extend existing validation and reuse installed components rather than introducing duplicate implementations.
+- Match supplied design references using the project's existing component variants and semantic theme tokens. Keep layouts responsive, including wrapping template choices and allowing tall dialogs to scroll.
+
 Schema
 
 - Derive the validation schema from the Drizzle table with `createInsertSchema` from `drizzle-zod`, and export it from `db/schema.ts` next to the table. Do not hand-write a parallel zod object.
 - `.omit()` every column the user must not supply: `id`, `userId`, timestamps, and anything generated server-side.
+- User-selected values belong in the insert schema even if the table has a default. For example, validate and submit the chosen avatar seed so the saved bot has the face shown in the preview; never accept a user-supplied owner or sandbox ID.
 - Put trimming, length limits and user-facing error messages in the schema refinements, so the client and the server share them.
 - Export the inferred type (`z.infer<typeof schema>`) and use it as the action's argument type.
+- Keep the shared schema importable by client components; database connections and server-only code belong in the database client or action. Changing validation alone does not require `db:push`.
 
 Server action
 
 - Actions live in `actions/<entity>.ts` with `"use server"` at the top of the file.
 - Start every action with `const { isAuthenticated, userId } = await auth()` from `@clerk/nextjs/server` and throw if not authenticated. Always take `userId` from the session, never from the input.
 - Re-validate the input with `schema.parse()` in the action; client validation is not trusted.
+- Insert only the parsed values, assigning ownership from the authenticated session after parsing. Never spread the unvalidated input into a database write.
 - Store empty optional text as `null`, then `revalidatePath` the affected route and return the created row.
 
 Form component
 
 - Use `react-hook-form` with `zodResolver(schema)` and the same schema the action uses. Give every field a `defaultValues` entry (`""` for text).
 - Compose with `FieldGroup` + `Controller` + `Field`: `data-invalid` on `Field`, `aria-invalid` on the control, errors through `<FieldError errors={[fieldState.error]} />`. Never lay out fields with raw `div`s and `Label`.
+- Use `FieldLabel` with matching control IDs, generated with `useId` when needed. Connect validation messages with `aria-describedby`, and render nullable optional text as `field.value ?? ""`.
+- Use `<form noValidate>` when React Hook Form owns validation so browser validation does not bypass the shared schema's error messages.
 - Submit by calling the server action inside `form.handleSubmit`, wrapped in `try/catch`. Report success and failure with `toast.add` from `@/components/ui/toast`.
 - While submitting, disable the submit button and show `<Spinner data-icon="inline-start" />`. Non-submit buttons inside the form need `type="button"`.
+- Use `form.formState.isSubmitting` for pending state. Disable editable controls with `FieldSet disabled={isSubmitting}` and explicitly disable custom controls where necessary.
 - Generate random values (seeds, ids) in a `useState(() => ...)` initializer or an event handler, never directly during render.
+- Keep preview values in the form state through `Controller`, so shuffling or choosing a value updates both the preview and the submitted payload.
+- For template choices, use `ToggleGroup` + `ToggleGroupItem`. Populate fields with `form.setValue` using `shouldDirty: true` and `shouldValidate: true`, and allow the user to edit the populated values.
 
 Forms in dialogs
 
 - Keep the form in its own component rendered inside `DialogContent`, so it mounts on open and its state resets every time.
 - The dialog component owns the `open` state and its `DialogTrigger`; the form closes it through an `onCreated`-style callback after success.
 - Put `DialogFooter` inside the `<form>` so the submit button works, and use `DialogClose` for Cancel.
+- This project uses Base UI: compose triggers and close controls with `render={<Button ... />}`, not Radix's `asChild`. Base UI `ToggleGroup` values are arrays, including single selections.
+- Close automatically only after a successful submission. On failure, keep the dialog open and preserve the entered values so the user can retry; Cancel remains a user-initiated dismissal.
 
 Dependencies
 
 - `zod` must stay on v4. If `npm install` fails with a peer conflict from `@hookform/resolvers`, pin `zod@^4` in the same install command rather than using `--force` or `--legacy-peer-deps`.
+
+Verification
+
+- Run type checking, lint, and formatting checks on the completed changes. Verify that the production build accepts the client/server imports.
+- Check required fields, whitespace trimming, length limits, optional text, and exclusion of server-owned columns. For actions, verify that unauthenticated or invalid submissions cannot write, ownership comes from Clerk, and the selected preview value is persisted.
+- When a browser session is available, check opening, validation, templates, preview changes, pending state, success/failure feedback, and reset after closing and reopening. Report verification limits accurately; mocked action checks do not prove a live database write.
 
 ## DiceBear
 

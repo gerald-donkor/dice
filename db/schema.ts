@@ -25,13 +25,26 @@ export const bots = pgTable(
 )
 
 export const botInsertSchema = createInsertSchema(bots, {
-  name: (schema) => schema.trim().min(1, "Enter a name."),
-  job: (schema) => schema.trim().min(1, "Enter a job."),
-  instructions: (schema) => schema.trim(),
+  name: (schema) =>
+    schema
+      .trim()
+      .min(1, "Enter a name.")
+      .max(80, "Use 80 characters or fewer."),
+  avatar: (schema) =>
+    schema
+      .trim()
+      .min(1, "Choose a face.")
+      .max(100, "Use a shorter avatar seed."),
+  job: (schema) =>
+    schema
+      .trim()
+      .min(1, "Enter a job.")
+      .max(200, "Use 200 characters or fewer."),
+  instructions: (schema) =>
+    schema.trim().max(4000, "Use 4,000 characters or fewer."),
 }).omit({
   id: true,
   userId: true,
-  avatar: true,
   sandboxId: true,
   createdAt: true,
 })
